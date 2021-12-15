@@ -1,20 +1,29 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-import numpy as np
 import argparse
 from album import Album
 import datetime
+import time
 
-# Ajout d'un paramètre facultatif permettant de sélectionner une autre semaine que la semaine courante
+# Ajout de divers paramètres facultatifs
 parser = argparse.ArgumentParser()
 parser.add_argument('--year', help='(optional) year between "2001" and the current year (current year by default)')
 parser.add_argument('--week', help='(optional) week number between "1" and "53" (current week by default)')
+parser.add_argument('--limit', help='(optional) limit of firsts top albums between "1" and "199" (all 200 albums shown by default)')
+parser.add_argument('--with-certification', help='(optional) use this parameter to show the columns related to album certifications', action="store_true")
 args = parser.parse_args()
 
+# Paramètres par défaut
 url = 'https://snepmusique.com/les-tops/le-top-de-la-semaine/top-albums/'
+limit: int = 200
+show_certif = False
 
+# Vérification de la conformité des paramètres saisis par l'utilisateur
 try:
+    print()
+    print('+--- Args ---+')
+    # --year
     if args.year:
         if args.year.isdigit() and int(args.year) > 2001 and int(args.year) <= datetime.date.today().year:
             print(f'year: {args.year}')
@@ -22,8 +31,9 @@ try:
         else:
             print('Invalid year: must be between "2001" and the current year')
     else:
-        print(f'year: {datetime.date.today().year}')
+        print(f'year: default ({datetime.date.today().year})')
 
+    # --week
     if args.week:
         if args.week.isdigit() and int(args.week) >= 1 and int(args.year) <= 53:
             print(f'week: {args.week}')
@@ -34,58 +44,126 @@ try:
         else:
             print('Invalid week: must be between "1" and "53"')
     else:
-        print(f'week: {datetime.date.today().strftime("%V")}')
+        print(f'week: default ({datetime.date.today().strftime("%V")})')
+    
+    # --limit
+    if args.limit:
+        if args.limit.isdigit() and int(args.limit) >= 1 and int(args.limit) <= 199:
+            print(f'limit: {args.limit}')
+            limit = int(args.limit)
+        else:
+            print('Invalid limit: must be between "1" and "199"')
+    else:
+        print(f'limit: none')
 
+    # --with-certification
+    if args.with_certification:
+        print(f'with-certification: yes')
+        show_certif = True
+    else:
+        print(f'with-certification: no')
+
+# Rétablissement des paramètres par défaut en cas d'erreur non gérée
 except Exception:
-    print(f'An error has occured')
+    print()
+    print(f'An error has occured, default parameters will be used')
     print(f'year: {datetime.date.today().year}')
     print(f'week: {datetime.date.today().strftime("%V")}')
+    print(f'limit: none')
+    print(f'with-certification: no')
     url = 'https://snepmusique.com/les-tops/le-top-de-la-semaine/top-albums/'
+    limit = 200
+    show_certif = False
 
+# Préparation du scraping
 request_text = requests.get(url)
-
 soup = BeautifulSoup(request_text.content, 'html.parser')
 
-df = pd.DataFrame(columns=['rank','trend','title','artist','editor','last_week_rank','week_in','best_rank'])
-df['rank'] = df['rank'].astype('int')
-df['trend'] = df['trend'].astype('string')
-df['title'] = df['title'].astype('string')
-df['artist'] = df['artist'].astype('string')
-df['editor'] = df['editor'].astype('string')
-df['last_week_rank'] = df['last_week_rank'].astype('int')
-df['week_in'] = df['week_in'].astype('int')
-df['best_rank'] = df['best_rank'].astype('int')
+# Gestion de la limite d'affichage du top albums
+if limit != 200:
+    items = soup.find_all('div', class_='item', limit=limit)
+else:
+    items = soup.find_all('div', class_='item')
 
-for element in soup.find_all('div', class_='item'):
-    
-    rank = element.find('div', class_='rang')
-    title = element.find('div', class_='titre')
-    artist = element.find('div', class_='artiste')
-    editor = element.find('div', class_='editeur')
-    last_week_rank = element.find('div', class_='rang_precedent')
-    week_in = element.find('div', class_='week_in')
-    best_rank = element.find('div', class_='best_pos')
+# Tableau d'objets "Album"
+top_albums = []
 
-    album = Album(
+# Bouclage sur les div "item" de la liste sur la page html
+for item in items:
+
+    rank = item.find('div', class_='rang')
+    trend_up = item.find('div', class_='rang_up icon-bigarrowup')
+    trend_down = item.find('div', class_='rang_down icon-bigarrowdown')
+    title = item.find('div', class_='titre')
+    artist = item.find('div', class_='artiste')
+    editor = item.find('div', class_='editeur')
+    last_week_rank = item.find('div', class_='rang_precedent')
+    week_in = item.find('div', class_='week_in')
+    best_rank = item.find('div', class_='best_pos')
+
+    # Création d'un nouvel objet "Album"
+    top_albums.append(Album(
         rank.get_text(),
-        'Up' if(element.find('div', class_='rang_up icon-bigarrowup') != None) else ('Down' if(element.find('div', class_='rang_down icon-bigarrowdown') != None) else 'Neutral'),
+        'Up' if(trend_up != None) else ('Down' if(trend_down != None) else 'Neutral'),
         title.get_text(),
         artist.get_text(),
         editor.get_text(),
-        -1 if last_week_rank == None else int(last_week_rank.find('strong').get_text()[0:-2 if 'er' in last_week_rank.find('strong').get_text() else -1]),
+        0 if last_week_rank == None else int(last_week_rank.find('strong').get_text()[0:-2 if 'er' in last_week_rank.find('strong').get_text() else -1]),
         0 if week_in.find('strong').get_text() == 'Nouvelle entrée' else int(week_in.find('strong').get_text()[0:-2 if 'er' in week_in.find('strong').get_text() else -1]),
-        int(best_rank.find('strong').get_text()[0:-2 if 'er' in best_rank.find('strong').get_text() else -1]),
-    )
-    
-    df = df.append({
-        'rank': album.rank,
-        'trend': album.trend,
-        'title': album.title,
-        'artist': album.artist,
-        'editor': album.editor,
-        'last_week_rank': album.last_week_rank,
-        'week_in': album.week_in,
-        'best_rank': album.best_rank
-    }, ignore_index=True)
+        int(best_rank.find('strong').get_text()[0:-2 if 'er' in best_rank.find('strong').get_text() else -1])
+    ))
 
-print('ended')
+# Gestion de l'affichage des données relatives aux certifications
+if show_certif:
+    df = pd.DataFrame(columns=['rank','trend','title','artist','editor','last_week_rank','week_in','best_rank','certification','certification_date'])
+
+    for album in top_albums:
+
+        print()
+        print(f'Scraping certification (album {album.rank}/{limit}).', end='\r')
+        time.sleep(1)
+        print(f'Scraping certification (album {album.rank}/{limit})..', end='\r')
+        time.sleep(1)
+        print(f'Scraping certification (album {album.rank}/{limit})...', end='\r')
+        time.sleep(1)
+        
+        # Récupération des certification de l'album
+        request_text = requests.get(f'https://snepmusique.com/les-certifications/?categorie=Albums&interprete={album.artist}&titre={album.title}')
+        soup = BeautifulSoup(request_text.content, 'html.parser')
+
+        album.certification = soup.find('div', class_='certif').get_text() if soup.find('div', class_='certification') else ''
+        album.certification_date = soup.find_all('div', class_='date')[1].get_text()[15:] if soup.find('div', class_='certification') else ''
+
+        df = df.append({
+            'rank': album.rank,
+            'trend': album.trend,
+            'title': album.title,
+            'artist': album.artist,
+            'editor': album.editor,
+            'last_week_rank': album.last_week_rank,
+            'week_in': album.week_in,
+            'best_rank': album.best_rank,
+            'certification': album.certification,
+            'certification_date': album.certification_date
+        }, ignore_index=True)
+    
+    print()
+        
+else:
+    df = pd.DataFrame(columns=['rank','trend','title','artist','editor','last_week_rank','week_in','best_rank'])
+
+    for album in top_albums:
+
+        df = df.append({
+            'rank': album.rank,
+            'trend': album.trend,
+            'title': album.title,
+            'artist': album.artist,
+            'editor': album.editor,
+            'last_week_rank': album.last_week_rank,
+            'week_in': album.week_in,
+            'best_rank': album.best_rank
+        }, ignore_index=True)
+    
+print()
+print("Done.")
