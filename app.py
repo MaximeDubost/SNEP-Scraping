@@ -166,7 +166,7 @@ else:
         }, ignore_index=True)
     
 
-df.to_csv('SNEP_Top_Albums.csv')
-df.to_excel('SNEP_Top_Albums.xls')
+df.to_csv('results/SNEP_Top_Albums.csv')
+df.to_excel('results/SNEP_Top_Albums.xls')
 print()
 print("Result saved has CSV and XLS files.")

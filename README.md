@@ -1,4 +1,8 @@
-![](img/440px-SNEP_Logo.png)
+<p align="center">
+    <img src="https://s2.qwant.com/thumbr/0x0/e/b/607e8841bcbc61e18531b742fc333aacc9ca094c7517c48b869672f4c8a947/440px-SNEP_Logo.png?u=https%3A%2F%2Fupload.wikimedia.org%2Fwikipedia%2Ffr%2Fthumb%2F1%2F12%2FSNEP_Logo.png%2F440px-SNEP_Logo.png&q=0&b=1&p=0&a=0">
+</p>
+
+<br>
 
 # Projet de scraping du site du SNEP
 
@@ -35,32 +39,44 @@ Les données récupérées seront réunies dans un seul DataFrame (avec la libra
 
 <br>
 
-## Le fonctionnement
+## Le fonctionnement en local
 
 Pour faire fonctionner le projet en local, exécuter le fichier app.py :
 
 ```
-python app.py
+python3 app.py
 ```
 
-Ceci aura pour effet de lancer le scraping avec les paramètres par défaut, mais il est possible de modifier 4 paramètres dont il est possible de voir les détails grace à la commande suivante :
+Ceci aura pour effet de lancer le scraping avec les paramètres par défaut, mais il est possible de modifier 4 paramètres visibles de la manière suivante :
 
 ```
-python app.py --help
+python3 app.py --help
 ```
 
 ![](img/help.PNG)
 
-Attention, le paramètre `--with-certification` augmente proportionnellement le temps de traitement par rapport à la valeur du paramètre `--limit` : cela ajoute un temps d'attente de 3s entre chaque scraping de certification d'album.
+Attention, le paramètre `--with-certification` augmente proportionnellement le temps de traitement par rapport à la valeur du paramètre `--limit`. En effet, cela ajoute un temps d'attente de 3s entre chaque scraping de certification d'album.
+
+<br>
+
+## Le fonctionnement avec Docker
+
+Pour faire fonctionner le projet avec Docker, créer le conteneur :
+
+```
+docker-compose up --build -d
+```
+
+À la fin de la création, exécuter le fichier `app.py` (avec des paramètres facultatifs si besoin) :
+
+```
+docker exec snep_scraping_container python3 app.py
+```
 
 <br>
 
 ## Le résultat
 
-Le résultat est généré sous forme de fichier CSV et XLS. Voici le résultat généré pour la commande suivante :
-
-```
-python app.py --limit 20 --with-certification
-```
+Le résultat est généré sous forme de fichier `.csv` et `.xls` dans le dossier `results`. Voici le résultat généré avec les paramètres `--limit 20` et `--with-certification`
 
 ![](img/result.PNG)

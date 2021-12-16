@@ -1,0 +1,9 @@
+version: "3.0"
+services:
+  snep_scraping_service:
+    build: .
+    container_name: snep_scraping_container
+    volumes:
+      - "./results:/results"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
