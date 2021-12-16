@@ -77,6 +77,11 @@ docker exec snep_scraping_container python3 app.py
 
 ## Le résultat
 
-Le résultat est généré sous forme de fichier `.csv` et `.xls` dans le dossier `results`. Voici le résultat généré avec les paramètres `--limit 20` et `--with-certification`
+Le résultat est généré sous forme de fichier `.csv` et `.xls` dans le dossier `results`. Voici un résultat généré le 16/12/2021 avec les paramètres `--limit 20` et `--with-certification` :
 
 ![](img/result.PNG)
+
+Voici un exemple d'analyse possible avec les données obtenues :
+
+![](img/certifications_result.jpg)
+

@@ -1,8 +1,10 @@
 from bs4 import BeautifulSoup
-import requests
-import pandas as pd
-import argparse
 from album import Album
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import argparse
+import requests
 import datetime
 import time
 
@@ -17,7 +19,7 @@ args = parser.parse_args()
 # Paramètres par défaut
 url = 'https://snepmusique.com/les-tops/le-top-de-la-semaine/top-albums/'
 limit: int = 200
-show_certif = False
+with_certification = False
 
 # Vérification de la conformité des paramètres saisis par l'utilisateur
 try:
@@ -59,7 +61,7 @@ try:
     # --with-certification
     if args.with_certification:
         print(f'with-certification: yes')
-        show_certif = True
+        with_certification = True
     else:
         print(f'with-certification: no')
 
@@ -73,7 +75,7 @@ except Exception:
     print(f'with-certification: no')
     url = 'https://snepmusique.com/les-tops/le-top-de-la-semaine/top-albums/'
     limit = 200
-    show_certif = False
+    with_certification = False
 
 # Préparation du scraping
 request_text = requests.get(url)
@@ -114,7 +116,7 @@ for item in items:
     ))
 
 # Gestion de l'affichage des données relatives aux certifications
-if show_certif:
+if with_certification:
     df = pd.DataFrame(columns=['rank','trend','title','artist','editor','last_week_rank','week_in','best_rank','certification','certification_date'])
 
     for album in top_albums:
@@ -127,7 +129,7 @@ if show_certif:
         print(f'[...] Scraping certification (album {album.rank}/{limit}).', end='\r')
         time.sleep(1)
         
-        # Récupération des certification de l'album
+        # Récupération des certifications de l'album
         request_text = requests.get(f'https://snepmusique.com/les-certifications/?categorie=Albums&interprete={album.artist}&titre={album.title}')
         soup = BeautifulSoup(request_text.content, 'html.parser')
 
@@ -148,6 +150,25 @@ if show_certif:
         }, ignore_index=True)
     
     print()
+
+    no_certification = df.certification.where(df.certification == '').count()
+    gold = df.certification.where(df.certification == 'Or').count()
+    platinium = df.certification.where(df.certification == 'Platine').count()
+    double_platinium = df.certification.where(df.certification == 'Double Platine').count()
+    triple_platinium = df.certification.where(df.certification == 'Triple Platine').count()
+    diamond = df.certification.where(df.certification == 'Diamant').count()
+    double_diamond = df.certification.where(df.certification == 'Double Diamant').count()
+    triple_diamond = df.certification.where(df.certification == 'Triple Diamant').count()
+    quad_diamond = df.certification.where(df.certification == 'Quadruple Diamant').count()
+
+    array = np.array([no_certification, gold, platinium, double_platinium, triple_platinium, diamond, double_diamond, triple_diamond, quad_diamond])
+    labels = ["Aucune", "Or", "Platine", "Double Platine", "Triple Platine", "Diamant", "Double Diamant", "Triple Diamant", "Quadruple Diamant"]
+
+    plt.pie(array, autopct='%1.1f%%')
+    plt.title(f"Répartition des certifications pour les {limit} premières places du Top Albums (semaine courante, année courante)")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, labels = labels)
+    plt.savefig(f"results/certifications_{datetime.datetime.now().isoformat()}.jpg", bbox_inches="tight")
+    plt.show()
         
 else:
     df = pd.DataFrame(columns=['rank','trend','title','artist','editor','last_week_rank','week_in','best_rank'])
@@ -169,4 +190,4 @@ else:
 df.to_csv('results/SNEP_Top_Albums.csv')
 df.to_excel('results/SNEP_Top_Albums.xls')
 print()
-print("Result saved has CSV and XLS files.")
+print("Result saved on \"results\" directory.")
