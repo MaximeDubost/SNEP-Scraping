@@ -119,12 +119,12 @@ if show_certif:
 
     for album in top_albums:
 
-        print()
-        print(f'Scraping certification (album {album.rank}/{limit}).', end='\r')
+        print('', end='\r')
+        print(f'[.  ] Scraping certification (album {album.rank}/{limit}).', end='\r')
         time.sleep(1)
-        print(f'Scraping certification (album {album.rank}/{limit})..', end='\r')
+        print(f'[.. ] Scraping certification (album {album.rank}/{limit}).', end='\r')
         time.sleep(1)
-        print(f'Scraping certification (album {album.rank}/{limit})...', end='\r')
+        print(f'[...] Scraping certification (album {album.rank}/{limit}).', end='\r')
         time.sleep(1)
         
         # Récupération des certification de l'album
@@ -165,5 +165,8 @@ else:
             'best_rank': album.best_rank
         }, ignore_index=True)
     
+
+df.to_csv('SNEP_Top_Albums.csv')
+df.to_excel('SNEP_Top_Albums.xls')
 print()
-print("Done.")
+print("Result saved has CSV and XLS files.")
