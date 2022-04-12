@@ -4,7 +4,7 @@
 
 <br>
 
-# Projet de scraping du site du SNEP
+# Projet de scraping du site web du SNEP
 
 <br>
 
